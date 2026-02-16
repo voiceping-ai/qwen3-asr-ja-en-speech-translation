@@ -19,14 +19,66 @@ tags:
 pipeline_tag: automatic-speech-recognition
 ---
 
-# Qwen3-ASR JA-EN Speech Translation
+# Qwen3-ASR EN-JA Speech Translation
 
-Bidirectional speech translation between Japanese and English using a fine-tuned [Qwen3-ASR-1.7B](https://huggingface.co/Qwen/Qwen3-ASR-1.7B) model. Inference runs on **CPU**.
+Bidirectional EN<->JA speech translation with the **highest translation quality** among compared models, built on [Qwen3-ASR-1.7B](https://huggingface.co/Qwen/Qwen3-ASR-1.7B).
 
-| Direction | Input | Output |
-|-----------|-------|--------|
-| EN -> JA | English audio | Japanese text |
-| JA -> EN | Japanese audio | English text |
+## Benchmark
+
+![Quality Scores](quality_scores.svg)
+
+| Model | Parameters | EN->JA | JA->EN | Speed (tok/s) |
+|-------|-----------|--------|--------|--------------|
+| [OpenAI Whisper large-v3](https://huggingface.co/openai/whisper-large-v3) | 1.55B | N/A (English-only output) | 3.2/5 | 51.0 |
+| [Meta SeamlessM4T v2 Large](https://huggingface.co/facebook/seamless-m4t-v2-large) | 1.50B | 3.8/5 | 3.0/5 | 48.6 |
+| [Whisper EN-JA Translation (ours)](https://huggingface.co/voiceping-ai/whisper-ja-en-speech-translation) | 756M | 2.6/5 | 2.4/5 | 212.1 |
+| **Qwen3-ASR EN-JA Translation (ours)** | 1.7B | **4.2/5** | **4.0/5** | 45.8 |
+
+> Quality scored on [FLEURS](https://huggingface.co/datasets/google/fleurs) test samples (1-5 scale: accuracy + fluency). Speed benchmarked on NVIDIA GPU with bfloat16.
+
+## Quick Start
+
+```bash
+pip install torch transformers>=4.57.0 qwen3-asr librosa
+```
+
+```python
+import torch
+import librosa
+from qwen_asr import Qwen3ASRModel
+
+MODEL_ID = "voiceping-ai/qwen3-asr-ja-en-speech-translation"
+
+model = Qwen3ASRModel.from_pretrained(MODEL_ID, dtype=torch.float32, device_map="cpu")
+
+# Load audio (16kHz mono)
+audio, sr = librosa.load("english_audio.wav", sr=16000)
+
+# EN audio -> JA text: set language to target language
+result = model.transcribe(audio=(audio, sr), language="Japanese")
+print(result[0].text)
+```
+
+```python
+# JA audio -> EN text: set language to target language
+result = model.transcribe(audio=(audio, sr), language="English")
+print(result[0].text)
+```
+
+### Standalone Inference Script
+
+See [`inference.py`](inference.py) for a complete standalone script that handles audio file input, device selection, and both translation directions.
+
+```bash
+# EN audio -> JA text
+python inference.py audio_en.wav --direction en2ja
+
+# JA audio -> EN text
+python inference.py audio_ja.wav --direction ja2en
+
+# Use GPU
+python inference.py audio.wav --direction en2ja --device cuda:0
+```
 
 ## Model Details
 
@@ -38,6 +90,15 @@ Bidirectional speech translation between Japanese and English using a fine-tuned
 | Architecture | Qwen3-ASR (audio encoder + language model) |
 | Total parameters | ~1.7B |
 | Max audio length | 30 seconds |
+
+### How Translation Direction Works
+
+The translation direction is controlled via the `language` parameter in the Qwen3-ASR `transcribe()` call:
+
+- `language="Japanese"` = EN audio -> **JA text**
+- `language="English"` = JA audio -> **EN text**
+
+The `language` parameter specifies the **target output language**. This differs from Whisper's convention where `language` specifies the source audio language.
 
 ### Training
 
@@ -95,15 +156,6 @@ The training data consists of ~1.27M paired audio-text translation samples acros
 
 Checkpoints were saved every 500 steps. The best checkpoint was selected based on the lowest evaluation loss on a held-out evaluation set, which occurred at approximately epoch 1.16 of training.
 
-### How Translation Direction Works
-
-The translation direction is controlled via the `language` parameter in the Qwen3-ASR `transcribe()` call:
-
-- `language="Japanese"` = EN audio -> **JA text**
-- `language="English"` = JA audio -> **EN text**
-
-The `language` parameter specifies the **target output language**. This differs from Whisper's convention where `language` specifies the source audio language.
-
 ### Evaluation
 
 Evaluated on the [FLEURS](https://huggingface.co/datasets/google/fleurs) test set for both translation directions.
@@ -113,70 +165,9 @@ Evaluated on the [FLEURS](https://huggingface.co/datasets/google/fleurs) test se
 - Speed measured in tokens/sec on GPU with bfloat16 precision
 - Text normalization applied per language: English uses BasicTextNormalizer (lowercase, remove punctuation); Japanese uses morphological tokenization with Kanji display-form normalization
 
-## Usage
+## Translation Examples
 
-### Installation
-
-```bash
-pip install torch transformers>=4.57.0 qwen3-asr librosa
-```
-
-### EN audio -> JA text
-
-```python
-import torch
-import librosa
-from qwen_asr import Qwen3ASRModel
-
-MODEL_ID = "voiceping-ai/qwen3-asr-ja-en-speech-translation"
-
-model = Qwen3ASRModel.from_pretrained(MODEL_ID, dtype=torch.float32, device_map="cpu")
-
-# Load audio (16kHz mono)
-audio, sr = librosa.load("english_audio.wav", sr=16000)
-
-# EN audio -> JA text: set language to target language
-result = model.transcribe(audio=(audio, sr), language="Japanese")
-print(result[0].text)
-```
-
-### JA audio -> EN text
-
-```python
-# JA audio -> EN text: set language to target language
-result = model.transcribe(audio=(audio, sr), language="English")
-print(result[0].text)
-```
-
-### Standalone Inference Script
-
-See [`inference.py`](inference.py) for a complete standalone script that handles audio file input, device selection, and both translation directions.
-
-```bash
-# EN audio -> JA text
-python inference.py audio_en.wav --direction en2ja
-
-# JA audio -> EN text
-python inference.py audio_ja.wav --direction ja2en
-
-# Use GPU
-python inference.py audio.wav --direction en2ja --device cuda:0
-```
-
-## Example Predictions
-
-Side-by-side comparison on [FLEURS](https://huggingface.co/datasets/google/fleurs) test set samples across four models:
-
-Quality scores rated on FLEURS test samples (1-5 scale: accuracy + fluency, scored by Claude).
-
-![Quality Scores](quality_scores.svg)
-
-| Model | Parameters | EN->JA | JA->EN | Speed (tok/s) |
-|-------|-----------|--------|--------|--------------|
-| [OpenAI Whisper large-v3](https://huggingface.co/openai/whisper-large-v3) | 1.55B | N/A (English-only output) | 3.2/5 | 51.0 |
-| [Meta SeamlessM4T v2 Large](https://huggingface.co/facebook/seamless-m4t-v2-large) | 1.50B | 3.8/5 | 3.0/5 | 48.6 |
-| [Whisper EN-JA Translation (ours)](https://huggingface.co/voiceping-ai/whisper-ja-en-speech-translation) | 756M | 2.6/5 | 2.4/5 | 212.1 |
-| **Qwen3-ASR EN-JA Translation (ours)** | 1.7B | **4.2/5** | **4.0/5** | 45.8 |
+Side-by-side comparison on [FLEURS](https://huggingface.co/datasets/google/fleurs) test set samples:
 
 ### EN -> JA
 
