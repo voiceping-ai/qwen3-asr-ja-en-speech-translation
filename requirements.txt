@@ -1,0 +1,6 @@
+torch
+transformers>=4.57.0
+huggingface_hub>=0.28.0
+qwen3-asr
+librosa
+numpy
