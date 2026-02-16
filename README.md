@@ -119,27 +119,27 @@ python inference.py audio.wav --direction en2ja --device cuda:0
 
 ## Example Predictions
 
-Predictions on [FLEURS](https://huggingface.co/datasets/google/fleurs) test set samples.
+Side-by-side comparison with [Whisper JA-EN](https://huggingface.co/voiceping-ai/whisper-ja-en-speech-translation) on [FLEURS](https://huggingface.co/datasets/google/fleurs) test set samples.
 
 ### EN -> JA
 
-| Source (EN audio) | Prediction (JA text) |
-|---|---|
-| however due to the slow communication channels styles in the west could lag behind by 25 to 30 year | しかし、通信の遅さのために、西洋のスタイルは25年から30年も遅れてしまう可能性があります。 |
-| the harbor was the site of an infamous naval standoff in 1889 when seven ships from germany the us and britain refused to leave the harbor | この港は、1889年にドイツ、アメリカ、イギリスから7隻の船が港を離れることを拒否したことで、悪名高い海軍の対立の場となった場所です。 |
-| plants make oxygen which humans breathe and they take in carbon-dioxide which humans exhale that is breathe out | 植物は酸素を生成し、人間が呼吸するものです。また、植物は二酸化炭素を吸収し、人間が排出するものです。つまり、植物は人間の呼吸を助けるのです。 |
-| according to japan's nuclear agency radioactive caesium and iodine has been identified at the plant | 日本原子力規制委員会によると、その工場で放射性カシウムやヨウ素が検出されたとのことです。 |
-| appropriate use of blogs can empower students to become more analytical and critical | ブログの適切な利用によって、学生はより分析的で批判的な思考を身につけることができます。 |
+| Source (EN audio) | Whisper | Qwen3-ASR |
+|---|---|---|
+| through the night between 150 and 200 copies were made now known as dunlap broadsides | 百五十から二百までのコピーが生成されました。 | 150から200本のコピーが作られました。これらは今では「Dunlap Broadside」として知られています。 |
+| the find also grants insight into the evolution of feathers in birds | この発見は、鳥の羽の形にも影響を与えます。 | この発見は、羽や鳥の進化についても洞察を与えてくれます。 |
+| we don't know for sure but it may have had a forked tongue its diet included turtles large fish other mosasaurs and it may even have been a cannibal | 確かはわかりませんが、おそらくフォークタンというものでしょう。そのダイには、カメや大きな五頭など、他のモーサーも含まれていました。また、彼は大麻でもありました。 | 確かなことはわかりませんが、おそらくその動物は舌が二本だったかもしれません。その動物の食事内容には、カメや大きな魚、他のモササウルスなどが含まれていました。また、その動物はおそらく人を食べていたのかもしれません。 |
+| australia's mitchell gourley finished eleventh in the men's standing super-g czech competitor oldrich jelinek finished sixteenth in the men's sitting super-g | オーストラリアのミッチェルゴーリーは、男子スタンディングスーパーGで十一位を獲得しました。一方、チェコの競争相手であるオルドリッチデレニックは、男子スタンディングスーパーGで十六位を獲得しました。 | オーストラリアのミッチェル・ゴーリーは、男子立位のスーパージューコースで11位を獲得しました。チェコの競技者であるオルドリッチ・ドレニックは、男子座位のスーパージューコースで16位を獲得しました。 |
+| in many other cities of italy and in the rest of the world particularly in poland similar setups were made which were viewed by a great number of people | イタリアやその他の国々でも、特にポーランドでは、同様の設備が設置されていました。これらの設備は、多くの人々によって見られました。 | イタリアの他の多くの都市や、世界の他の地域、特にポーランドでも、同様のシステムが設置されていました。そして、それらは多くの人々によって見られました。 |
 
 ### JA -> EN
 
-| Source (JA audio) | Prediction (EN text) |
-|---|---|
-| インターネットで 敵対的環境コース について検索すると おそらく現地企業の住所が出てくるでしょう | If you search for "anti-environmental courses" on the internet, you'll probably find the addresses of local companies that offer such courses. |
-| スブリングボックにとっては 5連敗が止まりました | For the Spring Box, this is the fifth consecutive win. |
-| 実際には 洞窟の存在を知っていても見つけるのは容易ではありません 洞窟に入ると そこは完全に隔離された空間です | In reality, even if one knows about the existence of caves, it's not easy to find them. Once you enter a cave, it becomes a completely isolated space. |
-| 1940年8月15日 連合国は南フランスに侵攻し その侵攻は ドラグーン作戦 と呼ばれました | On August 15, 1940, the Allied forces invaded southern France. This invasion was known as the "Draconian Campaign". |
-| プリトヴィッツェ湖群国立公園は アルプスと地中海の植生が混在する広大な森主にブナ トウヒ モミに大小16の湖が点在し 絶景で溢れる世界遺産です | Pitbitte National Park is a highland forest where both alpine and Mediterranean vegetation coexist. It's home to large lakes, mainly located in areas covered with birch, pine, and poplar trees. It's a World Heritage Site, known for its stunning landscapes. |
+| Source (JA audio) | Whisper | Qwen3-ASR |
+|---|---|---|
+| 残念ながら 運転手の行動を100%の確率で予測することはできないので 交通の流れを研究することは困難です | Unfortunately, it's impossible to predict the behavior of drivers with 100% certainty. Therefore, it's difficult to study the flow of traffic. | Unfortunately, it's not possible to predict the actions of drivers with 100% certainty. Therefore, it's difficult to study the flow of traffic. |
+| しかし シェンゲン圏は この点では一国のように機能します | However, in this regard, the pericard functions effectively. | However, the right to declare war functions in this case like a single country. |
+| 夜空の下でピラミッドに映像が浮かび ピラミッドが次々とライトアップされます | The pyramid is lit up one after another. | Under the night sky, images of pyramids are illuminated. The pyramids are lit up one after another. |
+| バーチャルチームは 従来のチームと同じ水準の卓越性が求められますが 微妙な違いがあります | The virtual team requires a level of durability, just like the traditional team. However, there are some slight differences between them. | Virtual teams require the same level of collaboration as traditional teams. However, there are some subtle differences between them. |
+| キルヒネル夫人は アルゼンチン劇場で大統領選に出馬するという意向を表明しました 2005年にブエノスアイレス州の代表団の一員として上院選への出馬を表明したのもこの劇場でした | Kylhine announced her intention to run for president in the Argentina theater. In 2005, she also announced her participation in the top-ranked team of the Ueno-Styles state as a representative of the Ueno-Stylus. | Mrs. Kirchner announced her intention to run for president at the Alzen Theatre. In 2005, she also announced her candidacy for the Senate as part of the delegation from Buenos Aires. It was at this theatre that she made her announcement. |
 
 ## Limitations
 
