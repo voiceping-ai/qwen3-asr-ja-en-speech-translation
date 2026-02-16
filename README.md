@@ -159,3 +159,4 @@ Quality scores rated on FLEURS test samples (1-5 scale: accuracy + fluency, scor
 ## License
 
 Apache 2.0
+# qwen3-asr-ja-en-speech-translation
