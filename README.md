@@ -41,18 +41,59 @@ Bidirectional speech translation between Japanese and English using a fine-tuned
 
 ### Training
 
-Fine-tuned for bidirectional speech translation (EN<->JA) using ~1.27M paired audio-text translation samples across 8 datasets.
+This model was fine-tuned from [Qwen3-ASR-1.7B](https://huggingface.co/Qwen/Qwen3-ASR-1.7B) for bidirectional speech translation (EN<->JA) using supervised fine-tuning (SFT) on a large-scale collection of paired audio-text translation data in both directions.
 
-**Training methodology:**
+#### Approach
 
-- **Task**: Supervised fine-tuning (SFT) for speech translation
-- **Optimizer**: AdamW
-- **Learning rate**: 1e-5 with cosine scheduler
-- **Epochs**: ~1.3 (best checkpoint at epoch 1.16)
-- **Effective batch size**: 64 (batch_size=8, grad_acc=8)
-- **Warmup**: 3% of total steps
-- **Audio filtering**: 0.5-30 seconds duration
-- **Training data**: ~1.27M samples (bidirectional EN<->JA)
+Qwen3-ASR uses a unified architecture where an audio encoder produces audio embeddings that are fed into a language model decoder. The original model is trained for ASR (speech-to-text in the same language). We extend this to **cross-lingual speech translation** by fine-tuning the model to produce text in a different language than the input audio.
+
+The key insight is that Qwen3-ASR's prompt format already supports a `language` field that controls the output language. By fine-tuning on translation pairs where the target text language differs from the source audio language, the model learns to translate rather than transcribe.
+
+#### Training Data Format
+
+Each training sample uses Qwen3-ASR's native prompt format:
+
+```
+language {TargetLanguage}<asr_text>{translated_text}
+```
+
+For example:
+- **EN audio -> JA text**: `language Japanese<asr_text>しかし、通信の速度が遅いため...`
+- **JA audio -> EN text**: `language English<asr_text>Unfortunately, it is difficult to predict...`
+
+This format is identical to how Qwen3-ASR handles standard ASR, except the target language differs from the source audio language.
+
+#### Training Data
+
+The training data consists of ~1.27M paired audio-text translation samples across multiple publicly available and synthetically augmented datasets, covering both EN->JA and JA->EN directions. Data was balanced across directions to prevent bias toward either translation direction.
+
+**Audio preprocessing:**
+- Resampled to 16kHz mono
+- Filtered to 0.5-30 seconds duration
+- Samples with empty or invalid text removed
+
+**Text preprocessing:**
+- Unicode normalization applied
+- Language-appropriate punctuation handling
+
+#### Hyperparameters
+
+| Parameter | Value |
+|-----------|-------|
+| Fine-tuning method | Full-parameter SFT |
+| Optimizer | AdamW |
+| Learning rate | 1e-5 |
+| LR scheduler | Cosine with warmup |
+| Warmup ratio | 3% of total steps |
+| Effective batch size | 64 (batch_size=8 x grad_accumulation=8) |
+| Training epochs | ~1.3 |
+| Best checkpoint | Epoch 1.16 (selected by eval loss) |
+| Precision | bfloat16 (mixed precision) |
+| Hardware | NVIDIA GPU |
+
+#### Checkpoint Selection
+
+Checkpoints were saved every 500 steps. The best checkpoint was selected based on the lowest evaluation loss on a held-out evaluation set, which occurred at approximately epoch 1.16 of training.
 
 ### How Translation Direction Works
 
@@ -61,11 +102,16 @@ The translation direction is controlled via the `language` parameter in the Qwen
 - `language="Japanese"` = EN audio -> **JA text**
 - `language="English"` = JA audio -> **EN text**
 
-The `language` parameter specifies the **target output language**.
+The `language` parameter specifies the **target output language**. This differs from Whisper's convention where `language` specifies the source audio language.
 
 ### Evaluation
 
 Evaluated on the [FLEURS](https://huggingface.co/datasets/google/fleurs) test set for both translation directions.
+
+**Evaluation metrics:**
+- Quality scored on a 1-5 scale (accuracy + fluency)
+- Speed measured in tokens/sec on GPU with bfloat16 precision
+- Text normalization applied per language: English uses BasicTextNormalizer (lowercase, remove punctuation); Japanese uses morphological tokenization with Kanji display-form normalization
 
 ## Usage
 
@@ -123,16 +169,18 @@ Side-by-side comparison on [FLEURS](https://huggingface.co/datasets/google/fleur
 
 Quality scores rated on FLEURS test samples (1-5 scale: accuracy + fluency, scored by Claude).
 
-| Model | Parameters | EN->JA | JA->EN |
-|-------|-----------|--------|--------|
-| [OpenAI Whisper large-v3](https://huggingface.co/openai/whisper-large-v3) | 1.55B | N/A (English-only output) | 3.2/5 |
-| [Meta SeamlessM4T v2 Large](https://huggingface.co/facebook/seamless-m4t-v2-large) | 1.50B | 3.8/5 | 3.0/5 |
-| [Whisper JA-EN (ours)](https://huggingface.co/voiceping-ai/whisper-ja-en-speech-translation) | 756M | 2.6/5 | 2.4/5 |
-| **Qwen3-ASR JA-EN (ours)** | 1.7B | **4.2/5** | **4.0/5** |
+![Quality Scores](quality_scores.svg)
+
+| Model | Parameters | EN->JA | JA->EN | Speed (tok/s) |
+|-------|-----------|--------|--------|--------------|
+| [OpenAI Whisper large-v3](https://huggingface.co/openai/whisper-large-v3) | 1.55B | N/A (English-only output) | 3.2/5 | 51.0 |
+| [Meta SeamlessM4T v2 Large](https://huggingface.co/facebook/seamless-m4t-v2-large) | 1.50B | 3.8/5 | 3.0/5 | 48.6 |
+| [Whisper EN-JA Translation (ours)](https://huggingface.co/voiceping-ai/whisper-ja-en-speech-translation) | 756M | 2.6/5 | 2.4/5 | 212.1 |
+| **Qwen3-ASR EN-JA Translation (ours)** | 1.7B | **4.2/5** | **4.0/5** | 45.8 |
 
 ### EN -> JA
 
-| Source (EN audio) | [OpenAI Whisper large-v3](https://huggingface.co/openai/whisper-large-v3) | [Meta SeamlessM4T v2](https://huggingface.co/facebook/seamless-m4t-v2-large) | [Whisper JA-EN (ours)](https://huggingface.co/voiceping-ai/whisper-ja-en-speech-translation) | **Qwen3-ASR JA-EN (ours)** |
+| Source (EN audio) | [OpenAI Whisper large-v3](https://huggingface.co/openai/whisper-large-v3) | [Meta SeamlessM4T v2](https://huggingface.co/facebook/seamless-m4t-v2-large) | [Whisper EN-JA Translation (ours)](https://huggingface.co/voiceping-ai/whisper-ja-en-speech-translation) | **Qwen3-ASR EN-JA Translation (ours)** |
 |---|---|---|---|---|
 | through the night between 150 and 200 copies were made now known as dunlap broadsides | N/A | 今ではダンラップ・ブロードサイズとして知られる 150 枚から 200 枚のコピーが作られました | 百五十から二百までのコピーが生成されました。 | 150から200本のコピーが作られました。これらは今では「Dunlap Broadside」として知られています。 |
 | the find also grants insight into the evolution of feathers in birds | N/A | この発見は羽の進化と鳥の進化についても洞察を深めます | この発見は、鳥の羽の形にも影響を与えます。 | この発見は、羽や鳥の進化についても洞察を与えてくれます。 |
@@ -142,7 +190,7 @@ Quality scores rated on FLEURS test samples (1-5 scale: accuracy + fluency, scor
 
 ### JA -> EN
 
-| Source (JA audio) | [OpenAI Whisper large-v3](https://huggingface.co/openai/whisper-large-v3) | [Meta SeamlessM4T v2](https://huggingface.co/facebook/seamless-m4t-v2-large) | [Whisper JA-EN (ours)](https://huggingface.co/voiceping-ai/whisper-ja-en-speech-translation) | **Qwen3-ASR JA-EN (ours)** |
+| Source (JA audio) | [OpenAI Whisper large-v3](https://huggingface.co/openai/whisper-large-v3) | [Meta SeamlessM4T v2](https://huggingface.co/facebook/seamless-m4t-v2-large) | [Whisper EN-JA Translation (ours)](https://huggingface.co/voiceping-ai/whisper-ja-en-speech-translation) | **Qwen3-ASR EN-JA Translation (ours)** |
 |---|---|---|---|---|
 | 残念ながら 運転手の行動を100%の確率で予測することはできないので 交通の流れを研究することは困難です | Unfortunately, it is difficult to predict the behavior of the driver with 100% probability, so it is difficult to study the flow of traffic. | Unfortunately, we can't predict the behavior of drivers with a hundred percent probability, so it's difficult to study the traffic flow. | Unfortunately, it's impossible to predict the behavior of drivers with 100% certainty. Therefore, it's difficult to study the flow of traffic. | Unfortunately, it's not possible to predict the actions of drivers with 100% certainty. Therefore, it's difficult to study the flow of traffic. |
 | しかし シェンゲン圏は この点では一国のように機能します | However, the declaration key works like a single click. | But the declaration of rights works like a miracle in this case. | However, in this regard, the pericard functions effectively. | However, the right to declare war functions in this case like a single country. |
@@ -159,4 +207,3 @@ Quality scores rated on FLEURS test samples (1-5 scale: accuracy + fluency, scor
 ## License
 
 Apache 2.0
-# qwen3-asr-ja-en-speech-translation
