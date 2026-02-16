@@ -1,6 +1,6 @@
 torch
 transformers>=4.57.0
 huggingface_hub>=0.28.0
-qwen3-asr
+qwen-asr @ git+https://github.com/QwenLM/Qwen3-ASR.git
 librosa
 numpy
